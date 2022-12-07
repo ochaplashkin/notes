@@ -1,0 +1,19 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# cache
+__pycache__/
+
+# coverage tool
+.coverage
+.coverage.*
+
+# idea / editor
+.vscode/
+.idea/
