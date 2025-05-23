@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Интерактивный график AverageTime</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .slider-container { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type=range] { width: 300px; }
+        #chart-container {
+            width: 600px;
+            height: 400px;
+            margin-top: 20px;
+        }
+        canvas {
+            /* Ограничиваем размер canvas через CSS */
+            width: 100% !important;
+            height: 100% !important;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Cache Efficiency (without warming)</h1>
+    <h4>AverageTime = CacheAccessTime + DbAccessTime × CacheMissRate</h4>
+
+    <div class="slider-container">
+        <label for="cacheAccessTime">CacheAccessTime (ms): <span id="cacheAccessTimeValue">20</span></label>
+        <input type="range" id="cacheAccessTime" min="0" max="1000" step="10" value="0">
+    </div>
+
+    <div class="slider-container">
+        <label for="dbAccessTime">DbAccessTime (ms): <span id="dbAccessTimeValue">100</span></label>
+        <input type="range" id="dbAccessTime" min="0" max="5000" step="50" value="100">
+    </div>
+
+    <div id="chart-container">
+        <canvas id="myChart"></canvas>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const cacheAccessTimeSlider = document.getElementById('cacheAccessTime');
+        const dbAccessTimeSlider = document.getElementById('dbAccessTime');
+
+        const cacheAccessTimeValue = document.getElementById('cacheAccessTimeValue');
+        const dbAccessTimeValue = document.getElementById('dbAccessTimeValue');
+
+        const ctx = document.getElementById('myChart').getContext('2d');
+
+        // Функция генерации данных
+        function generateData(cacheAccessTime, dbAccessTime) {
+            const cacheMissRates = [];
+            const averageTimes = [];
+            const averageTimesWithoutCache = [];
+            for(let i = 0; i <= 10; i++) {
+                let missRate = i * 10 / 100;
+                cacheMissRates.push(i * 10);
+                averageTimes.push(cacheAccessTime + dbAccessTime * missRate);
+                averageTimesWithoutCache.push(dbAccessTime);
+            }
+            return { cacheMissRates, averageTimes, averageTimesWithoutCache};
+        }
+
+        // Инициализация графика один раз
+        const initialData = generateData(parseFloat(cacheAccessTimeSlider.value), parseFloat(dbAccessTimeSlider.value));
+        const myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: initialData.cacheMissRates,
+                datasets: [
+                    {
+                        label: 'AverageTime (ms)',
+                        data: initialData.averageTimes,
+                        borderColor: 'deepskyblue',
+                        borderWidth: 3,
+                        fill: false,
+                        tension: 0.1,
+                    },
+                    {
+                        label: 'DbAccessTime (ms)',
+                        data: initialData.averageTimesWithoutCache,
+                        borderColor: 'tomato',
+                        borderWidth: 2,
+                        borderDash: [10,5], // пунктирная линия
+                        fill: false,
+                        tension: 0.1,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'CacheMissRate, %'
+                        },
+                        min: 0,
+                        max: 100
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Average time, ms'
+                        },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Функция обновления графика
+        function updateGraph() {
+            const CacheAccessTime = parseFloat(cacheAccessTimeSlider.value);
+            const DbAccessTime = parseFloat(dbAccessTimeSlider.value);
+
+            cacheAccessTimeValue.textContent = CacheAccessTime;
+            dbAccessTimeValue.textContent = DbAccessTime;
+
+            const data = generateData(CacheAccessTime, DbAccessTime);
+
+            // Обновляем данные графика без пересоздания
+            myChart.data.labels = data.cacheMissRates;
+            myChart.data.datasets[0].data = data.averageTimes;
+            myChart.data.datasets[1].data = data.averageTimesWithoutCache;
+            myChart.update();
+        }
+
+        // Обновляем значения рядом с ползунками сразу при движении
+        cacheAccessTimeSlider.addEventListener('input', () => {
+            cacheAccessTimeValue.textContent = cacheAccessTimeSlider.value;
+        });
+        dbAccessTimeSlider.addEventListener('input', () => {
+            dbAccessTimeValue.textContent = dbAccessTimeSlider.value;
+        });
+
+        // Обновляем график только при отпускании ползунка (change)
+        cacheAccessTimeSlider.addEventListener('change', updateGraph);
+        dbAccessTimeSlider.addEventListener('change', updateGraph);
+
+        // Инициализация значений и графика при загрузке
+        cacheAccessTimeValue.textContent = cacheAccessTimeSlider.value;
+        dbAccessTimeValue.textContent = dbAccessTimeSlider.value;
+    </script>
+
+</body>
+</html>
